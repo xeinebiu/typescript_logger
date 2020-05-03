@@ -4,11 +4,13 @@ Enable logging on your TS Project using decorators|annotations.
 ---
 ### Installation
 ````bash
-npm i @xeinebiu/ts-logger
+npm i @xeinebiu/ts-logger@1.0.1
 ````
 
 ---
 ### Change Logs
+    1.0.1
+        - Fix module exports
     1.0.0
         - Initial Version
         
@@ -19,7 +21,7 @@ npm i @xeinebiu/ts-logger
 Setting the ``listner`` is necessary to enable the logging.
 ````javascript
 Logger.listener = {
-    // Return True to output the give [log], false otherwise
+    // Return True to output the given [log], false otherwise
     beforeLog: (log: Log, outputType: OutputType) => {
         return true;
     },
