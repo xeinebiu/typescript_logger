@@ -1,0 +1,35 @@
+{
+  "name": "@xeinebiu/ts-logger",
+  "version": "1.0.0",
+  "description": "Typescript Logger",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xeinebiu/typescript_logger"
+  },
+  "keywords": [
+    "typescript",
+    "logger",
+    "angular",
+    "javascript",
+    "js",
+    "web",
+    "node"
+  ],
+  "files": [
+    "dist"
+  ],
+  "author": "xeinebiu",
+  "license": "ISC",
+  "devDependencies": {
+    "tslint": "^5.20.1",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "ts-loader": "^7.0.1"
+  }
+}
