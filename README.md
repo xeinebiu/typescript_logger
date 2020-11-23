@@ -42,7 +42,7 @@ Logger.listener = {
 ````
 
 ---
-####Method Logger
+#### MethodLogger
 To log any method, use ``@Method.Log()`` decorator and `@Method.asyncLong()` for Asynchronous Methods.
 
 Assume we have a class called ``Demo`` and we want to log some methods on it.
