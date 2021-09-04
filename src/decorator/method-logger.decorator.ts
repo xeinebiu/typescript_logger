@@ -1,47 +1,160 @@
 import {Logger} from '../Logger';
 import {Log} from '../models/log.model';
 import {MethodLoggerOptions} from './method-logger.options';
+import {getLogClassOptions} from './util';
 
-const STATUS_CALL = 'Call';
-const STATUS_RETURN = 'Return';
+const STATE_CALL = 'call';
+const STATE_RETURN = 'return';
+
+type STATE = 'call' | 'return';
+
+/**
+ * Parameters needed to output a log
+ *
+ * @author xeinebiu
+ */
+interface OutputParams {
+
+    /**
+     * Arguments passed to [method]
+     */
+    args: unknown[];
+
+    /**
+     * Tag of host class
+     */
+    classTag?: string;
+
+    /**
+     * Name of the method
+     */
+    key: string | symbol;
+
+    /**
+     * Reference to the executed method
+     */
+    method: Function;
+
+    /**
+     * Options assigned to [method]
+     */
+    options: MethodLoggerOptions;
+
+    /**
+     * Result returned from [method]
+     */
+    result?: unknown;
+
+    /**
+     * State of the method, can be `call` | `return`
+     */
+    state: STATE;
+}
+
+/**
+ * Parameters needed to create a log
+ *
+ * @author xeinebiu
+ */
+interface CreateLogParams {
+
+    /**
+     * Arguments passed to [method]
+     */
+    args: unknown[];
+
+    /**
+     * Tag of host class
+     */
+    classTag?: string;
+
+    /**
+     * Reference to the executed method
+     */
+    method: Function;
+
+    /**
+     * Options assigned to [method]
+     */
+    options: MethodLoggerOptions;
+
+    /**
+     * Result returned from [method]
+     */
+    result?: unknown;
+
+    /**
+     * Date when the event happened
+     */
+    timeStamp: Date;
+}
+
+/**
+ * Parameters needed to create a message
+ *
+ * @author xeinebiu
+ */
+interface CreateMessageParams {
+    /**
+     * Tag of host class
+     */
+    classTag?: string;
+
+    /**
+     * Name of the method
+     */
+    key: string | symbol;
+
+    /**
+     * State of the method, can be `call` | `return`
+     */
+    state: STATE;
+
+    /**
+     * Date when the event happened
+     */
+    timeStamp: Date;
+}
 
 /**
  * Create a Log Item from given arguments
+ *
  * @author xeinebiu
  */
-const createLog = (
-    timeStamp: Date,
-    method: Function,
-    options: MethodLoggerOptions,
-    args: unknown[],
-    result?: unknown
-) => {
+const createLog = (params: CreateLogParams) => {
     let printArgs: unknown[] | undefined;
-    if (options.args === true) {
-        printArgs = args;
-    } else if (Array.isArray(options.args)) {
+
+    if (params.options.args === true) {
+        printArgs = params.args;
+    } else if (Array.isArray(params.options.args)) {
         printArgs = [];
-        options.args.forEach(x => printArgs!.push(args[x]));
+        params.options.args.forEach(x => printArgs!.push(params.args[x]));
     }
+
     const log = new Log({
-        timeStamp,
-        importance: options.importance ?? -1,
-        method,
+        timeStamp: params.timeStamp,
+        importance: params.options.importance ?? -1,
+        method: params.method,
     });
-    if (result) {
-        log.data.result = result;
+
+    if (params.result) {
+        log.data.result = params.result;
     }
-    if (options.tag) {
-        log.data.tag = options.tag;
+
+    if (params.options.tag) {
+        log.data.tag = params.options.tag;
     }
+
     if (printArgs) {
         log.data.args = printArgs;
     }
+
     return log;
 };
 
 /**
- * Log error and re-throw
+ * Log error and re-throw [e]
+ *
  * @author xeinebiu
  */
 const error = (logger: Logger, e: Error) => {
@@ -53,31 +166,36 @@ const error = (logger: Logger, e: Error) => {
  * Create message to output when a method is called
  * @author xeinebiu
  */
-const createMessage = (
-    timeStamp: Date, key: string | symbol,
-    status: 'Call' | 'Return'
-) => {
-    return `${timeStamp.toLocaleTimeString()}   ${timeStamp.toLocaleDateString()}` +
-        `   ${status}: ${key.toString()}`;
+const createMessage = ({key, state, classTag, timeStamp}: CreateMessageParams) => {
+    return `${classTag ? classTag + '   ' : ''}${timeStamp.toLocaleTimeString()}   ${timeStamp.toLocaleDateString()}` +
+        `   ${state}: ${key.toString()}`;
 };
 
 /**
  * Output|Log
  * @author xeinebiu
  */
-const output = (
-    state: 'Call' | 'Return',
-    key: string | symbol,
-    originalMethod: Function,
-    options: MethodLoggerOptions,
-    args: unknown[],
-    result?: unknown
-) => {
+const output = (params: OutputParams) => {
     const timeStamp = new Date();
-    const message = createMessage(timeStamp, key, state);
-    const log = createLog(timeStamp, originalMethod, options, args, result);
+    const message = createMessage({
+        key: params.key,
+        state: params.state,
+        classTag: params.classTag,
+        timeStamp
+    });
+
+    const log = createLog({
+        classTag: params.classTag,
+        result: params.result,
+        args: params.args,
+        method: params.method,
+        options: params.options,
+        timeStamp
+    });
+
     const logger = new Logger(log);
     logger.log(message);
+
     return logger;
 };
 
@@ -104,22 +222,46 @@ export class Method {
      */
     public static asyncLog(options: MethodLoggerOptions = {importance: -1, args: false}) {
         // tslint:disable-next-line:only-arrow-functions
-        return function(target: unknown, key: string | symbol, descriptor: PropertyDescriptor) {
+        return function (target: unknown, key: string | symbol, descriptor: PropertyDescriptor) {
             const originalMethod: Function = descriptor.value;
-            descriptor.value = async function(...args: unknown[]) {
-                const logger = output(STATUS_CALL, key, originalMethod, options, args);
+            descriptor.value = async function (...args: unknown[]) {
+                const logClassTag = getLogClassOptions(this)?.tag;
+
+                const logger = output({
+                    options,
+                    args,
+                    key,
+                    result: undefined,
+                    method: originalMethod,
+                    classTag: logClassTag,
+                    state: STATE_CALL
+                });
+
                 inject(options, args);
+
                 let result: unknown | undefined;
                 try {
                     result = await originalMethod.apply(this, args);
                 } catch (e) {
                     error(logger, e);
                 }
+
                 if (options.printResult) {
-                    output(STATUS_RETURN, key, originalMethod, options, args, result);
+                    output({
+                        options,
+                        args,
+                        result,
+                        key,
+                        method: originalMethod,
+                        classTag: logClassTag,
+                        state: STATE_RETURN
+                    });
+
                 }
+
                 return result;
             };
+
             return descriptor;
         };
     }
@@ -131,22 +273,46 @@ export class Method {
      */
     public static log(options: MethodLoggerOptions = {importance: -1, args: false}) {
         // tslint:disable-next-line:only-arrow-functions
-        return function(target: unknown, key: string | symbol, descriptor: PropertyDescriptor) {
+        return function (target: unknown, key: string | symbol, descriptor: PropertyDescriptor) {
+            // @ts-ignore
             const originalMethod: Function = descriptor.value;
-            descriptor.value = function(...args: unknown[]) {
-                const logger = output(STATUS_CALL, key, originalMethod, options, args);
+            descriptor.value = function (...args: unknown[]) {
+
+                const logClassTag = getLogClassOptions(this)?.tag;
+                const logger = output({
+                    options,
+                    args,
+                    key,
+                    result: undefined,
+                    method: originalMethod,
+                    classTag: logClassTag,
+                    state: STATE_CALL
+                });
+
                 inject(options, args);
+
                 let result: unknown | undefined;
                 try {
                     result = originalMethod.apply(this, args);
                 } catch (e) {
                     error(logger, e);
                 }
+
                 if (options.printResult) {
-                    output(STATUS_RETURN, key, originalMethod, options, args, result);
+                    output({
+                        options,
+                        args,
+                        key,
+                        result,
+                        method: originalMethod,
+                        classTag: logClassTag,
+                        state: STATE_RETURN
+                    });
                 }
+
                 return result;
             };
+
             return descriptor;
         };
     }
