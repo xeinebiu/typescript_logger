@@ -11,6 +11,7 @@ export class Log {
             result?: unknown;
             tag?: string
             timeStamp?: Date;
-        }) {
+        }
+    ) {
     }
 }
