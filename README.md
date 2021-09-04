@@ -7,7 +7,7 @@ Enable logging on your TS Project using decorators|annotations.
 ### Installation
 
 ````bash
-npm i @xeinebiu/ts-logger@1.1.1
+npm i @xeinebiu/ts-logger@1.1.2
 ````
 
 ---
