@@ -80,14 +80,8 @@ The decorator ``@Method.log()`` accepts an `MethodLoggerOptions` as single argum
 for each Method.
 
 ````javascript
-    @Method.log({tag: 'Sum collection of numbers', args: true, importance: 1, printResult: true})
-public
-add(...args
-:
-number[]
-):
-number
-{
+@Method.log({tag: 'Sum collection of numbers', args: true, importance: 1, printResult: true})
+public add(...args : number[]) : number {
     let sum = 0;
     args.forEach(x => sum += x);
     return sum;
@@ -101,15 +95,8 @@ and the second when Return.
 Arguments can be printed partially also.
 
 ````javascript
-    @Method.asyncLog({tag: 'Login', printResult: true, args: [0]})
-public
-login(username
-:
-string, password
-:
-string
-):
-Promise < boolean > {
+@Method.asyncLog({tag: 'Login', printResult: true, args: [0]})
+public login(username : string, password : string ): Promise < boolean > {
     return new Promise < boolean > ((resolve) => {
         setTimeout(() => resolve(true), 1000);
     });
@@ -126,14 +113,8 @@ Injector can be used when Logging from inside of method is needed. Inject as las
 to `optional`.
 
 ````javascript
-    @Method.log({inject: true})
-public
-add(args
-:
-number[], logger ? : Logger
-):
-number
-{
+@Method.log({inject: true})
+public add(args : number[], logger? : Logger) : number {
     logger.debug('Add method is called');
     let sum = 0;
     args.forEach(x => sum += x);
@@ -151,8 +132,7 @@ Filter of logs can be done from the Listener ``beforeLog()`` callback.
 
 ````javascript
 beforeLog: (log: Log, outputType: OutputType) => {
-    return log.data.importance
-    ! > 2 && outputType === OutputType.debug;
+    return log.data.importance ! > 2 && outputType === OutputType.debug;
 },
 ...
 ````
